@@ -1,0 +1,575 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native"]
+}
+
+datasource db {
+    provider = "mysql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  organizationId String @map("organization_id")
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("staff")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+model Patient {
+  id        String   @id @default(cuid())
+  organizationId String @map("organization_id")
+  name      String
+  phone     String
+  age       Int
+  gender    String
+  address   String   @default("") @db.VarChar(1000)
+  notes     String   @default("") @db.VarChar(1000)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  visits    Visit[]
+
+  @@index([organizationId])
+  @@map("patients")
+}
+
+model Doctor {
+  id             String   @id @default(cuid())
+  organizationId String @map("organization_id")
+  name           String
+  specialization String
+  phone          String   @default("")
+  consultRate    Float    @map("consult_rate")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  visits         Visit[]
+
+  @@index([organizationId])
+  @@map("doctors")
+}
+
+model Service {
+  id          String         @id @default(cuid())
+  organizationId String @map("organization_id")
+  name        String
+  category    String         @default("General")
+  price       Float
+  description String         @default("") @db.VarChar(1000)
+  isActive    Boolean        @default(true) @map("is_active")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  visitItems  VisitService[]
+
+  @@index([organizationId])
+  @@map("services")
+}
+
+model Visit {
+  id            String         @id @default(cuid())
+  organizationId String @map("organization_id")
+  patientId     String         @map("patient_id")
+  doctorId      String         @map("doctor_id")
+  visitDate     DateTime       @map("visit_date")
+  status        String         @default("pending")
+  diagnosis     String         @default("") @db.VarChar(1000)
+  notes         String         @default("") @db.VarChar(1000)
+  totalAmount   Float          @default(0) @map("total_amount")
+  paidAmount    Float          @default(0) @map("paid_amount")
+  paymentMethod String         @default("cash") @map("payment_method")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  doctor        Doctor         @relation(fields: [doctorId], references: [id])
+  services      VisitService[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([visitDate])
+  @@index([organizationId])
+  @@map("visits")
+}
+
+model VisitService {
+  id        String   @id @default(cuid())
+  visitId   String   @map("visit_id")
+  serviceId String   @map("service_id")
+  quantity  Int      @default(1)
+  unitPrice Float    @map("unit_price")
+  total     Float
+  createdAt DateTime @default(now()) @map("created_at")
+  visit     Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  service   Service  @relation(fields: [serviceId], references: [id])
+
+  @@map("visit_services")
+}
+
+model InventoryItem {
+  id            String        @id @default(cuid())
+  organizationId String @map("organization_id")
+  name          String
+  category      String        @default("General")
+  unit          String        @default("pcs")
+  dosageForm    String        @default("") @map("dosage_form")
+  currentStock  Int           @default(0) @map("current_stock")
+  minStock      Int           @default(10) @map("min_stock")
+  purchasePrice Float         @default(0) @map("purchase_price")
+  sellingPrice  Float         @default(0) @map("selling_price")
+  isActive      Boolean       @default(true) @map("is_active")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  brands        Brand[]
+  ledgerEntries StockLedger[]
+
+  @@index([organizationId])
+  @@map("inventory_items")
+}
+
+model Brand {
+  id                  String                @id @default(cuid())
+  organizationId String @map("organization_id")
+  itemId              String                @map("item_id")
+  name                String
+  strength            String                @default("")
+  manufacturer        String                @default("")
+  defaultSellingPrice Float                 @default(0) @map("default_selling_price")
+  isActive            Boolean               @default(true) @map("is_active")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+  item                InventoryItem         @relation(fields: [itemId], references: [id])
+  batches             Batch[]
+  invoiceItems        SupplierInvoiceItem[]
+  ledgerEntries       StockLedger[]
+  dispensedItems      DispensedItem[]
+
+  @@index([itemId])
+  @@index([organizationId])
+  @@map("brands")
+}
+
+model Supplier {
+  id                String            @id @default(cuid())
+  organizationId String @map("organization_id")
+  name              String
+  contactPerson     String            @default("") @map("contact_person")
+  phone             String            @default("")
+  email             String            @default("")
+  address           String            @default("") @db.VarChar(1000)
+  creditLimit       Float             @default(0) @map("credit_limit")
+  defaultCreditDays Int               @default(30) @map("default_credit_days")
+  isActive          Boolean           @default(true) @map("is_active")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  batches           Batch[]
+  invoices          SupplierInvoice[]
+  payments          SupplierPayment[]
+  ledgerEntries     SupplierLedger[]
+
+  @@index([organizationId])
+  @@map("suppliers")
+}
+
+model Batch {
+  id             String               @id @default(cuid())
+  organizationId String @map("organization_id")
+  brandId        String               @map("brand_id")
+  supplierId     String?              @map("supplier_id")
+  invoiceItemId  String?              @unique @map("invoice_item_id")
+  batchNumber    String               @map("batch_number")
+  expiryDate     DateTime             @map("expiry_date")
+  purchasedQty   Int                  @map("purchased_qty")
+  freeQty        Int                  @default(0) @map("free_qty")
+  totalQty       Int                  @map("total_qty")
+  remainingQty   Int                  @map("remaining_qty")
+  totalPaidCost  Float                @map("total_paid_cost")
+  realUnitCost   Float                @map("real_unit_cost")
+  sellingPrice   Float                @default(0) @map("selling_price")
+  receivedDate   DateTime             @default(now()) @map("received_date")
+  status         String               @default("active")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+  brand          Brand                @relation(fields: [brandId], references: [id])
+  supplier       Supplier?            @relation(fields: [supplierId], references: [id])
+  invoiceItem    SupplierInvoiceItem? @relation(fields: [invoiceItemId], references: [id])
+  ledgerEntries  StockLedger[]
+  dispensedItems DispensedItem[]
+
+  @@index([brandId])
+  @@index([expiryDate])
+  @@index([organizationId])
+  @@map("batches")
+}
+
+model StockLedger {
+  id            String        @id @default(cuid())
+  organizationId String @map("organization_id")
+  itemId        String        @map("item_id")
+  brandId       String        @map("brand_id")
+  batchId       String        @map("batch_id")
+  movementType  String        @map("movement_type")
+  qty           Int
+  unitCost      Float         @default(0) @map("unit_cost")
+  sellingPrice  Float         @default(0) @map("selling_price")
+  referenceType String        @default("") @map("reference_type")
+  referenceId   String        @default("") @map("reference_id")
+  notes         String        @default("") @db.VarChar(1000)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  item          InventoryItem @relation(fields: [itemId], references: [id])
+  brand         Brand         @relation(fields: [brandId], references: [id])
+  batch         Batch         @relation(fields: [batchId], references: [id])
+
+  @@index([itemId])
+  @@index([batchId])
+  @@index([createdAt])
+  @@index([organizationId])
+  @@map("stock_ledger")
+}
+
+model DispensedItem {
+  id           String   @id @default(cuid())
+  organizationId String @map("organization_id")
+  visitId      String?  @map("visit_id")
+  brandId      String   @map("brand_id")
+  batchId      String   @map("batch_id")
+  qty          Int
+  unitCost     Float    @map("unit_cost")
+  sellingPrice Float    @map("selling_price")
+  totalCost    Float    @map("total_cost")
+  totalSale    Float    @map("total_sale")
+  profit       Float
+  createdAt    DateTime @default(now()) @map("created_at")
+  brand        Brand    @relation(fields: [brandId], references: [id])
+  batch        Batch    @relation(fields: [batchId], references: [id])
+
+  @@index([visitId])
+  @@index([organizationId])
+  @@map("dispensed_items")
+}
+
+model SupplierInvoice {
+  id            String                @id @default(cuid())
+  organizationId String @map("organization_id")
+  supplierId    String                @map("supplier_id")
+  invoiceNo     String                @map("invoice_no")
+  invoiceDate   DateTime              @map("invoice_date")
+  dueDate       DateTime?             @map("due_date")
+  grossTotal    Float                 @default(0) @map("gross_total")
+  discount      Float                 @default(0)
+  returnAmount  Float                 @default(0) @map("return_amount")
+  netTotal      Float                 @default(0) @map("net_total")
+  paidAmount    Float                 @default(0) @map("paid_amount")
+  balanceAmount Float                 @default(0) @map("balance_amount")
+  status        String                @default("unpaid")
+  notes         String                @default("") @db.VarChar(1000)
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+  supplier      Supplier              @relation(fields: [supplierId], references: [id])
+  items         SupplierInvoiceItem[]
+  allocations   PaymentAllocation[]
+
+  @@index([supplierId])
+  @@index([invoiceDate])
+  @@index([organizationId])
+  @@map("supplier_invoices")
+}
+
+model SupplierInvoiceItem {
+  id            String          @id @default(cuid())
+  invoiceId     String          @map("invoice_id")
+  brandId       String          @map("brand_id")
+  batchNumber   String          @map("batch_number")
+  expiryDate    DateTime        @map("expiry_date")
+  purchasedQty  Int             @map("purchased_qty")
+  freeQty       Int             @default(0) @map("free_qty")
+  totalQty      Int             @map("total_qty")
+  unitPrice     Float           @map("unit_price")
+  totalPaidCost Float           @map("total_paid_cost")
+  realUnitCost  Float           @map("real_unit_cost")
+  sellingPrice  Float           @default(0) @map("selling_price")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  invoice       SupplierInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  brand         Brand           @relation(fields: [brandId], references: [id])
+  batch         Batch?
+
+  @@index([invoiceId])
+  @@map("supplier_invoice_items")
+}
+
+model SupplierPayment {
+  id          String              @id @default(cuid())
+  organizationId String @map("organization_id")
+  supplierId  String              @map("supplier_id")
+  paymentDate DateTime            @map("payment_date")
+  method      String              @default("cash")
+  amount      Float
+  referenceNo String              @default("") @map("reference_no")
+  notes       String              @default("") @db.VarChar(1000)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  supplier    Supplier            @relation(fields: [supplierId], references: [id])
+  allocations PaymentAllocation[]
+
+  @@index([supplierId])
+  @@index([organizationId])
+  @@map("supplier_payments")
+}
+
+model PaymentAllocation {
+  id              String          @id @default(cuid())
+  paymentId       String          @map("payment_id")
+  invoiceId       String          @map("invoice_id")
+  allocatedAmount Float           @map("allocated_amount")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  payment         SupplierPayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  invoice         SupplierInvoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([paymentId])
+  @@index([invoiceId])
+  @@map("payment_allocations")
+}
+
+model SupplierLedger {
+  id              String   @id @default(cuid())
+  organizationId String @map("organization_id")
+  supplierId      String   @map("supplier_id")
+  date            DateTime
+  transactionType String   @map("transaction_type")
+  debit           Float    @default(0)
+  credit          Float    @default(0)
+  runningBalance  Float    @map("running_balance")
+  referenceId     String   @default("") @map("reference_id")
+  notes           String   @default("") @db.VarChar(1000)
+  createdAt       DateTime @default(now()) @map("created_at")
+  supplier        Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId, createdAt])
+  @@index([organizationId])
+  @@map("supplier_ledger")
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  organizationId String @map("organization_id")
+  category  String
+  amount    Float
+  date      DateTime
+  notes     String   @default("") @db.VarChar(1000)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@index([organizationId])
+  @@map("expenses")
+}
+
+model Staff {
+  id             String            @id @default(cuid())
+  organizationId String @map("organization_id")
+  name           String
+  role           String            @default("staff") // doctor | nurse | pharmacist | reception | staff
+  phone          String            @default("")
+  email          String            @default("")
+  pin            String            @default("") // attendance PIN
+  doctorId       String?           @map("doctor_id") // link when staff member is a doctor
+  salaryType     String            @default("monthly") @map("salary_type") // monthly | daily | per_patient | percentage
+  baseSalary     Float             @default(0) @map("base_salary")
+  dailyRate      Float             @default(0) @map("daily_rate")
+  perPatientRate Float             @default(0) @map("per_patient_rate")
+  percentageRate Float             @default(0) @map("percentage_rate")
+  otHourlyRate   Float             @default(0) @map("ot_hourly_rate")
+  shiftId        String?           @map("shift_id")
+  joinedDate     DateTime          @default(now()) @map("joined_date")
+  isActive       Boolean           @default(true) @map("is_active")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  shift          Shift?            @relation(fields: [shiftId], references: [id])
+  attendance     AttendanceLog[]
+  leaves         LeaveRequest[]
+  overtime       OvertimeRecord[]
+  payrolls       MonthlyPayroll[]
+
+  @@index([organizationId])
+  @@map("staff")
+}
+
+model Shift {
+  id           String   @id @default(cuid())
+  organizationId String @map("organization_id")
+  name         String
+  startTime    String   @map("start_time") // "08:30"
+  endTime      String   @map("end_time")   // "17:00"
+  graceMinutes Int      @default(15) @map("grace_minutes")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  staff        Staff[]
+
+  @@index([organizationId])
+  @@map("shifts")
+}
+
+model AttendanceLog {
+  id        String    @id @default(cuid())
+  organizationId String @map("organization_id")
+  staffId   String    @map("staff_id")
+  date      DateTime  // day at midnight
+  checkIn   DateTime? @map("check_in")
+  checkOut  DateTime? @map("check_out")
+  method    String    @default("manual") // pin | manual
+  status    String    @default("present") // present | late | absent | leave | half
+  notes     String    @default("") @db.VarChar(1000)
+  createdAt DateTime  @default(now()) @map("created_at")
+  staff     Staff     @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, date])
+  @@index([date])
+  @@index([organizationId])
+  @@map("attendance_logs")
+}
+
+model LeaveRequest {
+  id         String   @id @default(cuid())
+  organizationId String @map("organization_id")
+  staffId    String   @map("staff_id")
+  fromDate   DateTime @map("from_date")
+  toDate     DateTime @map("to_date")
+  leaveType  String   @default("casual") @map("leave_type") // casual | sick | annual | nopay
+  reason     String   @default("") @db.VarChar(1000)
+  status     String   @default("pending") // pending | approved | rejected
+  approvedBy String   @default("") @map("approved_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  staff      Staff    @relation(fields: [staffId], references: [id])
+
+  @@index([staffId])
+  @@index([organizationId])
+  @@map("leave_requests")
+}
+
+model OvertimeRecord {
+  id         String   @id @default(cuid())
+  organizationId String @map("organization_id")
+  staffId    String   @map("staff_id")
+  date       DateTime
+  hours      Float
+  rate       Float    @default(0)
+  amount     Float    @default(0)
+  approved   Boolean  @default(false)
+  notes      String   @default("") @db.VarChar(1000)
+  createdAt  DateTime @default(now()) @map("created_at")
+  staff      Staff    @relation(fields: [staffId], references: [id])
+
+  @@index([staffId, date])
+  @@index([organizationId])
+  @@map("overtime_records")
+}
+
+model MonthlyPayroll {
+  id             String    @id @default(cuid())
+  organizationId String @map("organization_id")
+  staffId        String    @map("staff_id")
+  month          String    // "2026-07"
+  baseSalary     Float     @default(0) @map("base_salary")
+  allowances     Float     @default(0)
+  bonuses        Float     @default(0)
+  overtimeAmount Float     @default(0) @map("overtime_amount")
+  deductions     Float     @default(0)
+  advances       Float     @default(0)
+  netSalary      Float     @default(0) @map("net_salary")
+  presentDays    Int       @default(0) @map("present_days")
+  absentDays     Int       @default(0) @map("absent_days")
+  status         String    @default("draft") // draft | approved | paid
+  paidDate       DateTime? @map("paid_date")
+  paymentMethod  String    @default("") @map("payment_method")
+  notes          String    @default("") @db.VarChar(1000)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  staff          Staff     @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, month])
+  @@index([month])
+  @@index([organizationId])
+  @@map("monthly_payroll")
+}
+
+model Prescription {
+  id        String             @id @default(cuid())
+  organizationId String @map("organization_id")
+  visitId   String?            @map("visit_id")
+  patientId String             @map("patient_id")
+  doctorId  String?            @map("doctor_id")
+  notes     String             @default("") @db.VarChar(1000)
+  status    String             @default("pending") // pending | dispensed | cancelled
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+  items     PrescriptionItem[]
+
+  @@index([patientId])
+  @@index([organizationId])
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id             String       @id @default(cuid())
+  prescriptionId String       @map("prescription_id")
+  brandId        String       @map("brand_id")
+  qty            Int
+  dosage         String       @default("")
+  status         String       @default("pending") // pending | dispensed
+  createdAt      DateTime     @default(now()) @map("created_at")
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
+  @@map("prescription_items")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  ownerName String   @default("") @map("owner_name")
+  phone     String   @default("")
+  email     String   @default("")
+  address   String   @default("") @db.VarChar(1000)
+  plan          String    @default("trial") // trial | basic | pro
+  status        String    @default("active") // active | suspended
+  planExpiresAt DateTime? @map("plan_expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("organizations")
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  userId         String   @default("") @map("user_id")
+  userName       String   @default("") @map("user_name")
+  action         String // create | update | delete | pay | dispense | approve
+  tableName      String   @map("table_name")
+  recordId       String   @default("") @map("record_id")
+  detail         String   @default("") @db.VarChar(1000)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
+}
+
+model BillingPayment {
+  id             String    @id @default(cuid())
+  organizationId String    @map("organization_id")
+  plan           String // basic | pro
+  months         Int       @default(1)
+  amount         Float
+  currency       String    @default("LKR")
+  method         String    @default("payhere") // payhere | bank | manual
+  reference      String    @default("")
+  status         String    @default("pending") // pending | confirmed | failed
+  paidAt         DateTime? @map("paid_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([organizationId, createdAt])
+  @@map("billing_payments")
+}

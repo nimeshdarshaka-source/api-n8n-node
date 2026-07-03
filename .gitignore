@@ -1,9 +1,43 @@
-.idea/
-node_modules
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
 .DS_Store
-.tmp
-tmp
-dist
+*.pem
+
+# debug
 npm-debug.log*
-yarn.lock
-.vscode/launch.json
+yarn-debug.log*
+yarn-error.log*
+*.log
+deploy-local-server.*.log
+
+# local env files (secrets stay in Hostinger env vars, never in git)
+.env
+.env*.local
+.env.production
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# prisma
+/prisma/*.db
+
+# editor / os
+.vscode/
+.idea/
+Thumbs.db
+
+# hostinger build artifacts / preview
+/preview/

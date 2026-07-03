@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 215 25% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+    --primary: 199 89% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 174 42% 51%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 30% 94%;
+    --muted-foreground: 215 15% 50%;
+    --accent: 199 70% 94%;
+    --accent-foreground: 199 89% 28%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 199 89% 38%;
+    --radius: 0.625rem;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 350ms;
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    --spacing-3xl: 64px;
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-lg: calc(var(--radius) + 4px);
+    --radius-full: 9999px;
+  }
+
+  .dark {
+    --background: 215 25% 10%;
+    --foreground: 210 40% 95%;
+    --card: 215 25% 13%;
+    --card-foreground: 210 40% 95%;
+    --popover: 215 25% 13%;
+    --popover-foreground: 210 40% 95%;
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 174 42% 41%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 215 20% 18%;
+    --muted-foreground: 210 15% 60%;
+    --accent: 199 50% 20%;
+    --accent-foreground: 199 89% 70%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 20% 22%;
+    --input: 215 20% 22%;
+    --ring: 199 89% 48%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+  [data-hydration-error] { display: none !important; }
+}
